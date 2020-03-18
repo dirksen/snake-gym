@@ -21,3 +21,9 @@ register(
     id='MultiSnake-v0',
     entry_point='snake_gym.envs:MultiSnakeEnv',
 )
+
+register(
+    id='MaurockSnake-v0',
+    entry_point='snake_gym.envs:MaurockSnakeEnv',
+)
+
