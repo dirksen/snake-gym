@@ -10,10 +10,10 @@ from keras.utils import to_categorical
 
 
 class SnakeAction(object):
-    LEFT = 0
-    UP = 1
-    RIGHT = 2
-    DOWN = 3
+    WEST = 0
+    NORTH = 1
+    EAST = 2
+    SOUTH = 3
 
 
 class BoardColor(object):
@@ -29,8 +29,7 @@ class MaurockSnakeEnv(gym.Env):
         # 'video.frames_per_second' : 50
     }
 
-    def __init__(self, observation_mode=None, energy_consum=False):
-        self.observation_mode = observation_mode
+    def __init__(self, energy_consum=False):
         self.energy_consum = energy_consum
         self.score = 0
         self.width = 10
@@ -38,10 +37,7 @@ class MaurockSnakeEnv(gym.Env):
 
         self.action_space = spaces.Discrete(4)
 
-        if observation_mode == 'rgb':
-            self.observation_space = spaces.Box(low=0, high=255, shape=(self.width * 20, self.height * 20, 3), dtype=np.uint8)
-        else:
-            self.observation_space = spaces.Box(low=0, high=2, shape=(self.width, self.height, 1), dtype=np.uint8)
+        self.observation_space = spaces.Box(low=0, high=2, shape=(self.width, self.height, 1), dtype=np.uint8)
 
         self.snake = Snake()
         self.foods = []
@@ -105,25 +101,25 @@ class MaurockSnakeEnv(gym.Env):
 
     def get_observation(self):
         x, y = self.snake.head
-        curr_act = self.snake.curr_act
+        heading = self.snake.curr_act
         immediate_dangers = np.zeros(4)
-        if curr_act:
+        if heading:
             immediate_dangers = deque([
                 self.is_dangerous(x - 1, y),
                 self.is_dangerous(x + 1, y),
                 self.is_dangerous(x, y - 1),
                 self.is_dangerous(x, y + 1),
             ])
-            immediate_dangers.rotate(curr_act)
-        curr_act = to_categorical(curr_act, 4) if curr_act is not None else np.zeros((4,))
+            # immediate_dangers.rotate(heading)
+        heading = to_categorical(heading, 4) if heading is not None else np.zeros((4,))
         fx, fy = self.foods[0]
         food_orientation = [
-            fx < x,  # food left
-            fx > x,  # food right
-            fy < y,  # food up
-            fy > y  # food down
+            fx < x,  # food west
+            fy < y,  # food north
+            fx > x,  # food east
+            fy > y  # food south
         ]
-        observation = np.concatenate(( immediate_dangers, curr_act, food_orientation ))
+        observation = np.concatenate(( immediate_dangers, heading, food_orientation ))
         # convert booleans to integers
         return np.multiply(observation, 1).reshape(1,-1)
 
@@ -184,13 +180,13 @@ class Snake(object):
                 action = self.curr_act
             self.curr_act = action
             x, y = self.head
-            if action == SnakeAction.LEFT:
+            if action == SnakeAction.WEST:
                 self.body.appendleft((x, y - 1))
-            if action == SnakeAction.RIGHT:
+            if action == SnakeAction.EAST:
                 self.body.appendleft((x, y + 1))
-            if action == SnakeAction.UP:
+            if action == SnakeAction.NORTH:
                 self.body.appendleft((x - 1, y))
-            if action == SnakeAction.DOWN:
+            if action == SnakeAction.SOUTH:
                 self.body.appendleft((x + 1, y))
             return self.body.pop()
 
@@ -202,8 +198,8 @@ class Snake(object):
         if len(self.body) == 1:
             return True
 
-        horizontal_actions = [SnakeAction.LEFT, SnakeAction.RIGHT]
-        vertical_actions = [SnakeAction.UP, SnakeAction.DOWN]
+        horizontal_actions = [SnakeAction.WEST, SnakeAction.EAST]
+        vertical_actions = [SnakeAction.NORTH, SnakeAction.SOUTH]
 
         if self.curr_act in horizontal_actions:
             return action in vertical_actions
