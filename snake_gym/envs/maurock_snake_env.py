@@ -1,4 +1,4 @@
-
+import init_seed
 
 import gym
 from gym import spaces, logger
@@ -29,8 +29,7 @@ class MaurockSnakeEnv(gym.Env):
         # 'video.frames_per_second' : 50
     }
 
-    def __init__(self, energy_consum=False):
-        self.energy_consum = energy_consum
+    def __init__(self):
         self.score = 0
         self.width = 10
         self.height = 10
@@ -69,12 +68,9 @@ class MaurockSnakeEnv(gym.Env):
 
         self.snake.reward = 0.
 
-        if self.energy_consum:
-            self.snake.reward -= 0.01
-
         if self.snake.head in self.foods:
             self.score += 1
-            self.snake.reward += 1.
+            self.snake.reward += 1
             self.snake.body.append(snake_tail)
             self.foods.remove(self.snake.head)
             empty_cells = self.get_empty_cells()
@@ -83,15 +79,15 @@ class MaurockSnakeEnv(gym.Env):
 
         #snake collided wall
         if self.is_collided_wall(self.snake.head):
-            self.snake.reward -= 1.
+            self.snake.reward -= 1
             self.snake.done = True
 
         #snake bite itself
         if self.snake.head in list(self.snake.body)[1:]:
-            self.snake.reward -= 1.
+            self.snake.reward -= 1
             self.snake.done = True
 
-        self.snake.reward = np.clip(self.snake.reward, -1., 1.)
+        # self.snake.reward = np.clip(self.snake.reward, -1., 1.)
 
         return self.get_observation(), self.snake.reward, self.snake.done, {}
 
@@ -114,10 +110,10 @@ class MaurockSnakeEnv(gym.Env):
         heading = to_categorical(heading, 4) if heading is not None else np.zeros((4,))
         fx, fy = self.foods[0]
         food_orientation = [
-            fx < x,  # food west
-            fy < y,  # food north
-            fx > x,  # food east
-            fy > y  # food south
+            fx < x,
+            fy < y,
+            fx > x,
+            fy > y
         ]
         observation = np.concatenate(( immediate_dangers, heading, food_orientation ))
         # convert booleans to integers

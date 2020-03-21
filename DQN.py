@@ -25,15 +25,6 @@ class DQNAgent(object):
         self.actual = []
         self.memory = []
 
-    def set_reward(self, player, crash):
-        self.reward = 0
-        if crash:
-            self.reward = -10
-            return self.reward
-        if player.eaten:
-            self.reward = 10
-        return self.reward
-
     def network(self, input_dim, load_weights=False):
         model = Sequential()
         model.add(Dense(output_dim=120, activation='relu', input_dim=input_dim))
@@ -67,12 +58,14 @@ class DQNAgent(object):
         # store the new data into a long term memory
         self.remember(state, action, reward, next_state, done)
 
-    def train_long_memory(self):
-        if len(self.memory) > 1000:
-            minibatch = random.sample(self.memory, 1000)
+    def dream(self):
+        batch_size = 1000
+        if len(self.memory) > batch_size:
+            minibatch = random.sample(self.memory, batch_size)
         else:
             minibatch = self.memory
-        map(self.train, minibatch)
+        for args in minibatch:
+            self.train(*args)
 
 
     def predict(self, state, game_counter):
