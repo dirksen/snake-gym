@@ -10,10 +10,10 @@ from keras.utils import to_categorical
 
 
 class SnakeAction(object):
-    WEST = 0
-    NORTH = 1
-    EAST = 2
-    SOUTH = 3
+    NORTH = 0
+    EAST = 1
+    SOUTH = 2
+    WEST = 3
 
 
 class BoardColor(object):
@@ -55,6 +55,7 @@ class MaurockSnakeEnv(gym.Env):
         empty_cells = self.snake.init(empty_cells, self.np_random)
         self.foods = [empty_cells[i] for i in self.np_random.choice(len(empty_cells), self.n_foods, replace=False)]
         # self.foods = [( self.width/2, self.height/2 - 2 )]
+        obs = self.get_observation()
         return self.get_observation()
 
     def seed(self, seed=None):
@@ -89,24 +90,22 @@ class MaurockSnakeEnv(gym.Env):
 
         # self.snake.reward = np.clip(self.snake.reward, -1., 1.)
 
-        return self.get_observation(), self.snake.reward, self.snake.done, {}
+        a, b, c, d = self.get_observation(), self.snake.reward, self.snake.done, {}
+        return a, b, c, d
 
     def is_dangerous(self, x, y):
         pos = ( x, y )
-        return self.is_collided_wall(pos) or pos in list(self.snake.body)[2:]
+        return self.is_collided_wall(pos) or pos in list(self.snake.body)[1:]
 
     def get_observation(self):
         x, y = self.snake.head
         heading = self.snake.curr_act
-        immediate_dangers = np.zeros(4)
-        if heading:
-            immediate_dangers = deque([
-                self.is_dangerous(x - 1, y),
-                self.is_dangerous(x + 1, y),
-                self.is_dangerous(x, y - 1),
-                self.is_dangerous(x, y + 1),
-            ])
-            # immediate_dangers.rotate(heading)
+        immediate_dangers = [
+            self.is_dangerous(x - 1, y),
+            self.is_dangerous(x, y + 1),
+            self.is_dangerous(x + 1, y),
+            self.is_dangerous(x, y - 1),
+        ]
         heading = to_categorical(heading, 4) if heading is not None else np.zeros((4,))
         fx, fy = self.foods[0]
         food_orientation = [
@@ -172,8 +171,8 @@ class Snake(object):
 
     def step(self, action):
         if not self.done:
-            if not self.is_valid_action(action):
-                action = self.curr_act
+            # if not self.is_valid_action(action):
+            #     action = self.curr_act
             self.curr_act = action
             x, y = self.head
             if action == SnakeAction.WEST:

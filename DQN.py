@@ -33,7 +33,7 @@ class DQNAgent(object):
         model.add(Dropout(0.15))
         model.add(Dense(output_dim=120, activation='relu'))
         model.add(Dropout(0.15))
-        model.add(Dense(output_dim=4, activation='softmax'))
+        model.add(Dense(output_dim=self.action_space.n, activation='softmax'))
         opt = Adam(self.learning_rate)
         model.compile(loss='mse', optimizer=opt)
 
@@ -42,6 +42,7 @@ class DQNAgent(object):
         return model
 
     def remember(self, state, action, reward, next_state, done):
+        # if reward != 0:
         self.memory.append((state, action, reward, next_state, done))
 
     def train(self, state, action, reward, next_state, done):
