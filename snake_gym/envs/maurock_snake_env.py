@@ -1,6 +1,7 @@
 import init_seed
 
 import gym
+import time
 from gym import spaces, logger
 from gym.utils import seeding
 import numpy as np
@@ -23,11 +24,6 @@ class BoardColor(object):
 
 
 class MaurockSnakeEnv(gym.Env):
-
-    metadata = {
-        'render.modes': ['human', 'rgb_array'],
-        # 'video.frames_per_second' : 50
-    }
 
     def __init__(self):
         self.score = 0
@@ -88,6 +84,13 @@ class MaurockSnakeEnv(gym.Env):
             self.snake.reward -= 1
             self.snake.done = True
 
+        #snake turn back
+        if self.snake.curr_act is not None:
+            going_back = (self.snake.curr_act + 2)  % 4
+            if action == going_back:
+                self.snake.reward -= 1
+                self.snake.done = True
+
         # self.snake.reward = np.clip(self.snake.reward, -1., 1.)
 
         a, b, c, d = self.get_observation(), self.snake.reward, self.snake.done, {}
@@ -114,7 +117,7 @@ class MaurockSnakeEnv(gym.Env):
             fx > x,
             fy > y
         ]
-        observation = np.concatenate(( immediate_dangers, heading, food_orientation ))
+        observation = np.concatenate((immediate_dangers, heading, food_orientation))
         # convert booleans to integers
         return np.multiply(observation, 1).reshape(1,-1)
 
@@ -148,17 +151,6 @@ class MaurockSnakeEnv(gym.Env):
             return True
         return False
 
-    def render(self, mode='human'):
-        img = self.get_image()
-        if mode == 'rgb_array':
-            return img
-        elif mode == 'human':
-            if self.viewer is None:
-                from gym.envs.classic_control import rendering
-                self.viewer = rendering.SimpleImageViewer()
-            self.viewer.imshow(img)
-            return self.viewer.isopen
-
 
 class Snake(object):
 
@@ -171,8 +163,6 @@ class Snake(object):
 
     def step(self, action):
         if not self.done:
-            # if not self.is_valid_action(action):
-            #     action = self.curr_act
             self.curr_act = action
             x, y = self.head
             if action == SnakeAction.WEST:
@@ -188,17 +178,6 @@ class Snake(object):
     @property
     def head(self):
         return self.body[0]
-
-    def is_valid_action(self, action):
-        if len(self.body) == 1:
-            return True
-
-        horizontal_actions = [SnakeAction.WEST, SnakeAction.EAST]
-        vertical_actions = [SnakeAction.NORTH, SnakeAction.SOUTH]
-
-        if self.curr_act in horizontal_actions:
-            return action in vertical_actions
-        return action in horizontal_actions
 
     def init(self, empty_cells, np_random):
         self.body.clear()

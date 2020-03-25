@@ -10,7 +10,7 @@ from operator import add
 
 class DQNAgent(object):
 
-    def __init__(self, action_space, input_dim, mode='training', load_weights=False):
+    def __init__(self, action_space, input_dim, epsilon=80, mode='training', load_weights=False):
         self.mode = mode
         self.reward = 0
         self.gamma = 0.9
@@ -21,7 +21,7 @@ class DQNAgent(object):
         self.learning_rate = 0.0005
         self.action_space = action_space
         self.model = self.network(input_dim=input_dim, load_weights=load_weights)
-        self.epsilon = 0
+        self.epsilon = epsilon
         self.actual = []
         self.memory = []
 
@@ -33,7 +33,10 @@ class DQNAgent(object):
         model.add(Dropout(0.15))
         model.add(Dense(output_dim=120, activation='relu'))
         model.add(Dropout(0.15))
-        model.add(Dense(output_dim=self.action_space.n, activation='softmax'))
+        output_dim = self.action_space.n
+        if self.mode == 'double_heads':
+            output_dim += 1
+        model.add(Dense(output_dim=output_dim, activation='softmax'))
         opt = Adam(self.learning_rate)
         model.compile(loss='mse', optimizer=opt)
 
@@ -42,10 +45,9 @@ class DQNAgent(object):
         return model
 
     def remember(self, state, action, reward, next_state, done):
-        # if reward != 0:
         self.memory.append((state, action, reward, next_state, done))
 
-    def train(self, state, action, reward, next_state, done):
+    def _train(self, state, action, reward, next_state, done):
         target = reward
         if not done:
             target = reward + self.gamma * np.amax(self.model.predict(next_state)[0])
@@ -53,9 +55,9 @@ class DQNAgent(object):
         target_f[0][action] = target
         self.model.fit(state, target_f, epochs=1, verbose=0)
 
-    def train_short_memory(self, state, action, reward, next_state, done):
+    def train(self, state, action, reward, next_state, done):
         """ train short memory base on the new action and state"""
-        self.train(state, action, reward, next_state, done)
+        self._train(state, action, reward, next_state, done)
         # store the new data into a long term memory
         self.remember(state, action, reward, next_state, done)
 
@@ -66,30 +68,22 @@ class DQNAgent(object):
         else:
             minibatch = self.memory
         for args in minibatch:
-            self.train(*args)
+            self._train(*args)
 
 
     def predict(self, state, game_counter):
         act = None
-        if self.mode == 'training':
-            #self.epsilon is set to give randomness to actions
-            self.epsilon = 80 - game_counter
+        if self.mode in ('training', 'double_heads'):
 
             #perform random actions based on self.epsilon, or choose the action
-            if random.randint(0, 200) < self.epsilon:
+            if random.randint(0, 200) < (self.epsilon - game_counter):
                 act = self.action_space.sample()
             else:
                 # predict action based on the old state
                 prediction = self.model.predict(state)[0]
                 act = np.argmax(prediction)
-        elif self.mode == 'testing':
-            # predict action based on the old state
-            prediction = self.model.predict(state)[0]
-            act = np.argmax(prediction)
         elif self.mode == 'random':
             act = self.action_space.sample()
-        else:
-            raise Exception(f'Invalid mode {mode}')
         return act
 
     def save_model(self):
